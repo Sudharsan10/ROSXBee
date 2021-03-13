@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
 """
 XBeeInterface.py exposes the XBee module within ROS environment
 
+AUTHORS: Sudharsan
+GitHub: Sudharsan10
 """
 # ==================================================================================================================== #
 # Meta Data and future imports
@@ -27,8 +28,6 @@ from digi.xbee.packets.common import TransmitStatusPacket, TransmitStatus
 from digi.xbee.devices import XBeeDevice, RemoteXBeeDevice, XBee64BitAddress, XBeeMessage
 
 # ---> Miscellaneous import <--- #
-import json
-import cbor2
 import platform
 
 # ---> Exceptions <--- #
@@ -56,21 +55,20 @@ class XBeeInterfaceNode(Node):
         super().__init__('XBeeInterface')
 
         # ---> Declare ROS Parameters <--- #
-        self.declare_parameter('xbee_device_port_id', '/dev/ttyUSB0' if self.__platform__ == 'Linux' else 'COM0')
+        self.declare_parameter('port', '/dev/ttyUSB0' if self.__platform__ == 'Linux' else 'COM0')
         self.declare_parameter('baud_rate', 115200)
-
         # ---> Get Xbee Device Object <--- #
         try:
-            self.xbee = XBeeDevice(self.get_parameter('xbee_device_port_id').value,
+            self.xbee = XBeeDevice(self.get_parameter('port').value,
                                    self.get_parameter('baud_rate').value)
             self.xbee.open()
-            self.get_logger().info('Successfully interfaced XBee module with node ID: ', self.xbee.get_node_id())
+            self.get_logger().info('Successfully interfaced XBee module with node ID: ' + self.xbee.get_node_id())
         except XBeeException as error:
-            self.get_logger().info('XBee Exception Occurred, ERROR: ', error)
+            self.get_logger().info('XBee Exception Occurred, ERROR: ' + str(error))
         except SerialException as error:
             self.get_logger().info('Cannot establish  connection with the XBee Module,: ' + str(error))
         except Exception as error:
-            self.get_logger().info('Exception occurred,  Error: ', error)
+            self.get_logger().info('Exception occurred,  Error: ' + str(error))
         finally:
             # self.set_call_back()
             pass
