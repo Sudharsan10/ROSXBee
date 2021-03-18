@@ -6,7 +6,7 @@
   <description>A ROS2 wrapper for xbee devices using digi-xbee python API</description>
   <maintainer email="sudharsansci@gmail.com">Sudharsan</maintainer>
   <url>http://wiki.ros.org/ROSXBeepy</url>
-  <license>TODO: License declaration</license>
+  <license>BSD</license>
 
 
   <depend>rclpy</depend>
