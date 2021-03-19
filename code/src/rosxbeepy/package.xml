@@ -2,7 +2,7 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>rosxbeepy</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>A ROS2 wrapper for xbee devices using digi-xbee python API</description>
   <maintainer email="sudharsansci@gmail.com">Sudharsan</maintainer>
   <url>http://wiki.ros.org/ROSXBeepy</url>
