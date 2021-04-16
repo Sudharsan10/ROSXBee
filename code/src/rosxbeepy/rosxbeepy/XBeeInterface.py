@@ -21,6 +21,8 @@ __data__ = 'Mar 8, 2021'
 # ---> ROS2 import <--- #
 import rclpy
 from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.action import ActionServer, CancelResponse, GoalResponse
 
 # ---> Digi-Xbee Imports <--- #
 from digi.xbee.packets.base import DictKeys
@@ -41,12 +43,11 @@ from serial.serialutil import SerialException
 # ==================================================================================================================== #
 
 class XBeeInterfaceNode(Node):
-    coordinator: str = '0'
-    __platform__: str = platform.system()
-
-    """"
+    """
 
     """
+    coordinator: str = '0'
+    __platform__: str = platform.system()
 
     def __init__(self):
         """
@@ -71,6 +72,13 @@ class XBeeInterfaceNode(Node):
             self.get_logger().info('Exception occurred,  Error: ' + str(error))
         finally:
             # self.set_call_back()
+            pass
+
+        try:
+            self.transmission_server = None
+        except ROSInterruptException as e:
+            self.get_logger().info('ROS Exception Occurred, ERROR: ' + str(e))
+        finally:
             pass
 
     def transmit(self, data: bytes, recipient_address: str = coordinator) -> TransmitStatusPacket:
@@ -106,20 +114,14 @@ class XBeeInterfaceNode(Node):
 # Main function declaration
 # ==================================================================================================================== #
 def main(args=None) -> None:
-    """
-    ROS2 Entry point for the Node creation
-    Args:
-        args: None
-
-    Returns: None
-
-    """
     try:
         rclpy.init(args=args)
         node = XBeeInterfaceNode()
         rclpy.spin(node)
     except ROSInterruptException as e:
         print('Failed to create a ROS2 Node: ', e)
+    except KeyboardInterrupt as e:
+        print('Exiting due to keyboard interrupt: ', e)
     finally:
         rclpy.shutdown()
 
