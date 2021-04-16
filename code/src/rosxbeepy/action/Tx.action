@@ -1,0 +1,9 @@
+# Request
+string payload
+---
+# Result
+string status
+---
+# Feedback
+int32 parts
+int32 total
