@@ -31,8 +31,7 @@ def generate_launch_description() -> LaunchDescription:
         executable='XBeeInterface',
         parameters=[
             {'port': '/dev/ttyUSB0'},
-            {'baud_rate': 115200},
-            {'test': 'success'}
+            {'baud_rate': 115200}
         ]
     )
     ld.add_action(xbee_interface_node)
