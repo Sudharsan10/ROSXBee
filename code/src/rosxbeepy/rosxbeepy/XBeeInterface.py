@@ -22,20 +22,22 @@ __data__ = 'Mar 8, 2021'
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.exceptions import ROSInterruptException
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 
 # ---> Digi-Xbee Imports <--- #
 from digi.xbee.packets.base import DictKeys
+from serial.serialutil import SerialException
+from digi.xbee.exception import TransmitException, XBeeException
 from digi.xbee.packets.common import TransmitStatusPacket, TransmitStatus
 from digi.xbee.devices import XBeeDevice, RemoteXBeeDevice, XBee64BitAddress, XBeeMessage
 
 # ---> Miscellaneous import <--- #
 import platform
 
-# ---> Exceptions <--- #
-from rclpy.exceptions import ROSInterruptException
-from digi.xbee.exception import TransmitException, XBeeException
-from serial.serialutil import SerialException
+# ---> Other Imports <--- #
+from rosxbeepy.action import Tx
 
 
 # ==================================================================================================================== #
@@ -58,6 +60,7 @@ class XBeeInterfaceNode(Node):
         # ---> Declare ROS Parameters <--- #
         self.declare_parameter('port', '/dev/ttyUSB0' if self.__platform__ == 'Linux' else 'COM0')
         self.declare_parameter('baud_rate', 115200)
+
         # ---> Get Xbee Device Object <--- #
         try:
             self.xbee = XBeeDevice(self.get_parameter('port').value,
@@ -75,11 +78,77 @@ class XBeeInterfaceNode(Node):
             pass
 
         try:
-            self.transmission_server = None
+            self.transmission_server = ActionServer(
+                self,
+                Tx,
+                'XBeeTransmit',
+                execute_callback='',
+                callback_group=ReentrantCallbackGroup(),
+                handle_accepted_callback=self.handle_accepted_callback,
+                goal_callback=self.goal_callback,
+                cancel_callback=self.cancel_callback
+            )
         except ROSInterruptException as e:
             self.get_logger().info('ROS Exception Occurred, ERROR: ' + str(e))
         finally:
             pass
+
+    def destroy(self) -> None:
+        """
+        Destroy transmission action server along with the XBeeInterface node
+
+        :return: None
+        """
+        self.transmission_server.destroy()
+        super().destroy_node()
+
+    def goal_callback(self, goal_handle) -> GoalResponse:
+        """
+        Accept or reject a client request to begin an action.
+        :param goal_handle:
+        :return:
+        """
+        self.get_logger().info('Received Goal Request')
+        return GoalResponse.ACCEPT
+
+    def cancel_callback(self, goal_handle) -> CancelResponse:
+        """
+        Accept or reject a client request to begin an action.
+        :param goal_handle:
+        :return:
+        """
+        self.get_logger().info('Received Cancel Request')
+        return CancelResponse.ACCEPT
+
+    def handle_accepted_callback(self, goal_handle):
+        """
+        Provide a handle to an accepted goal.
+        :param goal_handle:
+        :return:
+        """
+        self.get_logger().info('Deferring Execution ...')
+
+    def execute_callback(self, goal_handle) -> Tx.Result:
+        """
+        Execute goal
+
+        :param goal_handle:
+        :return:
+        """
+        self.get_logger().info('Executing the goal')
+
+        # ---> Feedback & Result <--- #
+        feedback_msg = Tx.Feedback()
+        result_msg = Tx.Result()
+
+        # ---> Executing the Goal <--- #
+
+        # ---> If all the msg are sent successfully to the recipient <--- #
+        if True:
+            goal_handle.succeed()
+        # ---> Return the Result <--- #
+        self.get_logger().info('Finished executing goal, Returning result')
+        return result_msg
 
     def transmit(self, data: bytes, recipient_address: str = coordinator) -> TransmitStatusPacket:
         """
@@ -117,7 +186,10 @@ def main(args=None) -> None:
     try:
         rclpy.init(args=args)
         node = XBeeInterfaceNode()
-        rclpy.spin(node)
+        # Use a MultiThreadedExecutor to enable processing goals concurrently
+        executor = MultiThreadedExecutor()
+        rclpy.spin(node, executor=executor)
+        node.transmission_server.destroy()
     except ROSInterruptException as e:
         print('Failed to create a ROS2 Node: ', e)
     except KeyboardInterrupt as e:
